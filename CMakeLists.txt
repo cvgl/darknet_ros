@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(darknet_ros)
 
+if(CMAKE_SIZEOF_VOID_P EQUAL 8) 
+    set(arch_64 TRUE) 
+else() 
+    set(arch_64 FALSE) 
+endif() 
+
 find_package(CUDA REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
@@ -23,11 +29,19 @@ generate_messages(
    std_msgs
 )
 
-set(
-    CUDA_NVCC_FLAGS
-    ${CUDA_NVCC_FLAGS};
-    -O3 -gencode arch=compute_53,code=sm_53
-    )
+if(arch_64)
+   set(
+      CUDA_NVCC_FLAGS
+      ${CUDA_NVCC_FLAGS};
+      -O3
+      )
+else()
+   set(
+      CUDA_NVCC_FLAGS
+      ${CUDA_NVCC_FLAGS};
+      -O3 -gencode arch=compute_53,code=sm_53
+      )
+endif()
 
 add_definitions(-DGPU -DOPENCV)
 
@@ -36,13 +50,13 @@ catkin_package(
 )
 
 include_directories(
-  /usr/local/cuda/include
+  $ENV{CUDA_HOME}/include
   src
   ${catkin_INCLUDE_DIRS}
 )
 
 link_directories(
-  /usr/local/cuda/lib
+  $ENV{CUDA_HOME}/lib64
 )
 
 cuda_add_executable(ROS_interface 
@@ -128,6 +142,8 @@ target_link_libraries(ROS_interface
    curand
    ${catkin_LIBRARIES}
 )
+
+add_dependencies(yolo_object_detector darknet_ros_generate_messages_cpp) 
 
 target_link_libraries(yolo_object_detector
    m
