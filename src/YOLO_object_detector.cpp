@@ -12,6 +12,7 @@
 #include <math.h>
 #include <darknet_ros/bbox_array.h>
 #include <darknet_ros/bbox.h>
+#include <ros/package.h>
 
 extern "C" {
   #include "box.h"
@@ -19,11 +20,15 @@ extern "C" {
 
 // initialize YOLO functions that are called in this script
 extern "C" ROS_box *demo_yolo();
-extern "C" void load_network(char *cfgfile, char *weightfile, float thresh);
+extern "C" void load_network(const char *cfgfile, const char *weightfile, float thresh);
 
 // define demo_yolo inputs
-char *cfg = "/home/ubuntu/catkin_ws/src/darknet_ros/cfg/tiny-yolo.cfg";
-char *weights = "/media/sdcard/darknet/weights/tiny-yolov1.weights";
+const std::string cfg_file = ros::package::getPath("darknet_ros") + "/cfg/tiny-yolo.cfg";
+const std::string weights_file = ros::package::getPath("darknet_ros") + "/weights/tiny-yolov1.weights";
+
+const char *cfg = cfg_file.c_str();
+const char *weights = weights_file.c_str();
+
 float thresh = 0.3;
 
 const std::string class_labels[] = { "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat",
@@ -35,11 +40,12 @@ cv::Mat cam_image_copy;
 
 // define parameters
 //Changing Topic Name
-const std::string CAMERA_TOPIC_NAME = "/camera/rgb/image_raw";
+//const std::string CAMERA_TOPIC_NAME = "/camera/rgb/image_raw";
 
 const std::string CAMERA_WIDTH_PARAM = "/usb_cam/image_width";
 const std::string CAMERA_HEIGHT_PARAM = "/usb_cam/image_height";
 const std::string OPENCV_WINDOW = "YOLO object detection";
+
 int FRAME_W;
 int FRAME_H;
 int FRAME_AREA;
@@ -75,10 +81,10 @@ public:
          _bbox_colors[i] = cv::Scalar(255 - incr*i, 0 + incr*i, 255 - incr*i);
       }
 
-      _image_sub = _it.subscribe(CAMERA_TOPIC_NAME, 1,
+      _image_sub = _it.subscribe("camera_topic_name", 1,
 	                       &yoloObjectDetector::cameraCallback,this);
-      _found_object_pub = _nh.advertise<std_msgs::Int8>("found_object", 1);
-      _bboxes_pub = _nh.advertise<darknet_ros::bbox_array>("YOLO_bboxes", 1);
+      _found_object_pub = _nh.advertise<std_msgs::Int8>("yolo_found_object", 1);
+      _bboxes_pub = _nh.advertise<darknet_ros::bbox_array>("yolo_bboxes", 1);
 
       cv::namedWindow(OPENCV_WINDOW, cv::WINDOW_NORMAL);
    }
@@ -170,7 +176,7 @@ private:
 
    void cameraCallback(const sensor_msgs::ImageConstPtr& msg)
    {
-      std::cout << "usb image received" << std::endl;
+      std::cout << "Connected to ROS video topic" << std::endl;
 
       cv_bridge::CvImagePtr cam_image;
 
@@ -206,6 +212,7 @@ int main(int argc, char** argv)
    //ros::param::get(CAMERA_HEIGHT_PARAM, FRAME_H);
    FRAME_W=640;
    FRAME_H=480;
+
    load_network(cfg, weights, thresh);
 
    yoloObjectDetector yod;
