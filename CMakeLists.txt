@@ -15,19 +15,6 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   image_transport
-  message_generation
-)
-
-add_message_files(
-  FILES
-  bbox.msg
-  bbox_array.msg
-  bbox_array_stamped.msg
-)
-
-generate_messages(
-   DEPENDENCIES
-   std_msgs
 )
 
 if(arch_64)
@@ -45,10 +32,6 @@ else()
 endif()
 
 add_definitions(-DGPU -DOPENCV)
-
-catkin_package(
-  CATKIN_DEPENDS message_runtime
-)
 
 include_directories(
   $ENV{CUDA_HOME}/include
@@ -144,7 +127,7 @@ target_link_libraries(ROS_interface
    ${catkin_LIBRARIES}
 )
 
-add_dependencies(yolo_object_detector darknet_ros_generate_messages_cpp) 
+add_dependencies(yolo_object_detector darknet_generate_messages_cpp) 
 
 target_link_libraries(yolo_object_detector
    m

@@ -10,9 +10,9 @@
 #include <pthread.h>
 #include <std_msgs/Int8.h>
 #include <math.h>
-#include <darknet_ros/bbox_array.h>
-#include <darknet_ros/bbox_array_stamped.h>
-#include <darknet_ros/bbox.h>
+#include <darknet_msgs/bbox_array.h>
+#include <darknet_msgs/bbox_array_stamped.h>
+#include <darknet_msgs/bbox.h>
 #include <ros/package.h>
 
 extern "C" {
@@ -70,7 +70,7 @@ class yoloObjectDetector
    std::vector< std::vector<ROS_box> > _class_bboxes;
    std::vector<int> _class_obj_count;
    std::vector<cv::Scalar> _bbox_colors;
-   darknet_ros::bbox_array_stamped _bbox_results_msg;
+   darknet_msgs::bbox_array_stamped _bbox_results_msg;
    ROS_box* _boxes;
 
 public:
@@ -86,7 +86,7 @@ public:
       _image_sub = _it.subscribe("camera_topic_name", 1,
 	                       &yoloObjectDetector::cameraCallback,this);
       _found_object_pub = _nh.advertise<std_msgs::Int8>("yolo_found_object", 1);
-      _bboxes_pub = _nh.advertise<darknet_ros::bbox_array_stamped>("yolo_bboxes", 1);
+      _bboxes_pub = _nh.advertise<darknet_msgs::bbox_array_stamped>("yolo_bboxes", 1);
 
       cv::namedWindow(OPENCV_WINDOW, cv::WINDOW_NORMAL);
    }
@@ -100,7 +100,7 @@ private:
    void drawBBoxes(cv::Mat &input_frame, std::vector<ROS_box> &class_boxes, int &class_obj_count,
 		   cv::Scalar &bbox_color, const std::string &class_label)
    {
-      darknet_ros::bbox bbox_result;
+      darknet_msgs::bbox bbox_result;
 
       for (int i = 0; i < class_obj_count; i++) {
          int xmin = (class_boxes[i].x - class_boxes[i].w/2)*FRAME_W;
