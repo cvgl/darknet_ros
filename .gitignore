@@ -6,5 +6,6 @@ weights
 .project
 .pydevproject
 CATKIN_IGNORE
-
+build
+obj
 
