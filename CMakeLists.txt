@@ -22,6 +22,7 @@ add_message_files(
   FILES
   bbox.msg
   bbox_array.msg
+  bbox_array_stamped.msg
 )
 
 generate_messages(
