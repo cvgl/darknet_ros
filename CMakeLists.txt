@@ -7,6 +7,8 @@ else()
     set(arch_64 FALSE) 
 endif() 
 
+catkin_package()
+
 find_package(CUDA REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
@@ -133,7 +135,7 @@ target_link_libraries(ROS_interface
    ${catkin_LIBRARIES}
 )
 
-add_dependencies(yolo_object_detector darknet_generate_messages_cpp) 
+add_dependencies(yolo_object_detector darknet_msgs_generate_messages_cpp) 
 
 target_link_libraries(yolo_object_detector
    m
@@ -145,3 +147,4 @@ target_link_libraries(yolo_object_detector
    curand
    ${catkin_LIBRARIES}
 )
+
