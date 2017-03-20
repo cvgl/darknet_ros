@@ -44,7 +44,9 @@ if(arch_64)
     $ENV{CUDA_HOME}/lib64
   )
 else()
+  link_directories(
     $ENV{CUDA_HOME}/lib
+  )
 endif()
 
 cuda_add_executable(ROS_interface 
