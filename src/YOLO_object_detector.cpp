@@ -11,6 +11,7 @@
 #include <std_msgs/Int8.h>
 #include <math.h>
 #include <darknet_ros/bbox_array.h>
+#include <darknet_ros/bbox_array_stamped.h>
 #include <darknet_ros/bbox.h>
 #include <ros/package.h>
 
@@ -39,8 +40,7 @@ const int num_classes = sizeof(class_labels)/sizeof(class_labels[0]);
 cv::Mat cam_image_copy;
 
 // define parameters
-//Changing Topic Name
-//const std::string CAMERA_TOPIC_NAME = "/camera/rgb/image_raw";
+std::string camera_frame;
 
 const std::string CAMERA_WIDTH_PARAM = "/usb_cam/image_width";
 const std::string CAMERA_HEIGHT_PARAM = "/usb_cam/image_height";
@@ -70,7 +70,7 @@ class yoloObjectDetector
    std::vector< std::vector<ROS_box> > _class_bboxes;
    std::vector<int> _class_obj_count;
    std::vector<cv::Scalar> _bbox_colors;
-   darknet_ros::bbox_array _bbox_results_msg;
+   darknet_ros::bbox_array_stamped _bbox_results_msg;
    ROS_box* _boxes;
 
 public:
@@ -80,11 +80,13 @@ public:
       for (int i = 0; i < num_classes; i++) {
          _bbox_colors[i] = cv::Scalar(255 - incr*i, 0 + incr*i, 255 - incr*i);
       }
+      
+      _nh.param<std::string>("camera_frame", camera_frame,  "sibot/camera_rgb_optical_frame");
 
       _image_sub = _it.subscribe("camera_topic_name", 1,
 	                       &yoloObjectDetector::cameraCallback,this);
       _found_object_pub = _nh.advertise<std_msgs::Int8>("yolo_found_object", 1);
-      _bboxes_pub = _nh.advertise<darknet_ros::bbox_array>("yolo_bboxes", 1);
+      _bboxes_pub = _nh.advertise<darknet_ros::bbox_array_stamped>("yolo_bboxes", 1);
 
       cv::namedWindow(OPENCV_WINDOW, cv::WINDOW_NORMAL);
    }
@@ -157,6 +159,8 @@ private:
             if (_class_obj_count[i] > 0) drawBBoxes(input_frame, _class_bboxes[i],
 					      _class_obj_count[i], _bbox_colors[i], class_labels[i]);
          }
+         _bbox_results_msg.header.frame_id = camera_frame;
+         _bbox_results_msg.header.stamp = ros::Time::now();         
          _bboxes_pub.publish(_bbox_results_msg);
          _bbox_results_msg.bboxes.clear();
       } else {
