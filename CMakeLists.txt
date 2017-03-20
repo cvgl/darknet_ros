@@ -39,9 +39,13 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-link_directories(
-  $ENV{CUDA_HOME}/lib64
-)
+if(arch_64)
+  link_directories(
+    $ENV{CUDA_HOME}/lib64
+  )
+else()
+    $ENV{CUDA_HOME}/lib
+endif()
 
 cuda_add_executable(ROS_interface 
   src/ROS_interface.cpp
