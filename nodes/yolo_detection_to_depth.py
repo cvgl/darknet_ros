@@ -24,7 +24,7 @@ import rospy
 import message_filters
 from sensor_msgs import point_cloud2
 from sensor_msgs.msg import PointCloud2
-from darknet_ros.msg import bbox_array_stamped
+from darknet_msgs.msg import bbox_array_stamped
 from people_msgs.msg import People, Person
 from tf2_geometry_msgs import PointStamped, PoseStamped
 import tf2_ros
