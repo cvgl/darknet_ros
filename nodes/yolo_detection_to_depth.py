@@ -72,16 +72,18 @@ class Detection2Depth():
         for detection in yolo_boxes.bboxes:
             if detection.Class == 'person':                
                 bbox = [detection.xmin, detection.ymin, detection.xmax, detection.ymax]
-                cog = self.get_bbox_cloud(bbox, cloud)
                 try:
-                    if cog == PointCloud2():
+                    cog = self.get_bbox_cloud(bbox, cloud)
+                    if cog == PoseStamped():
                         continue
                 except:
                     continue
                  
                 person = Person()
                 person.position = cog.pose.position
+                person.position.z = 0.0
                 person.name = str(len(self.people.people))
+                person.reliability = 1.0
                  
                 self.people.people.append(person)
         
@@ -128,8 +130,8 @@ class Detection2Depth():
           
         # If we have points, compute the centroid coordinates
         if n == 0:
-            rospy.logwarn("NO POINTS!")
-            return PointStamped()
+            #rospy.logwarn("NO POINTS!")
+            return PoseStamped()
         
         x /= n 
         y /= n 
