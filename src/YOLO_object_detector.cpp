@@ -41,6 +41,7 @@ cv::Mat cam_image_copy;
 
 // define parameters
 std::string camera_frame;
+bool show_video;
 
 const std::string CAMERA_WIDTH_PARAM = "/usb_cam/image_width";
 const std::string CAMERA_HEIGHT_PARAM = "/usb_cam/image_height";
@@ -81,7 +82,8 @@ public:
          _bbox_colors[i] = cv::Scalar(255 - incr*i, 0 + incr*i, 255 - incr*i);
       }
       
-      _nh.param<std::string>("camera_frame", camera_frame,  "sibot/camera_rgb_optical_frame");
+      _nh.param<std::string>("/yolo_object_detector/camera_frame", camera_frame,  "sibot/camera_rgb_optical_frame");
+      _nh.param<bool>("/yolo_object_detector/show_video", show_video, true);
 
       _image_sub = _it.subscribe("camera_topic_name", 1,
 	                       &yoloObjectDetector::cameraCallback,this);
@@ -174,8 +176,10 @@ private:
          _class_obj_count[i] = 0;
       }
 
-      cv::imshow(OPENCV_WINDOW, input_frame);
-      cv::waitKey(3);
+      if (show_video) {
+    	  cv::imshow(OPENCV_WINDOW, input_frame);
+    	  cv::waitKey(3);
+      }
    }
 
    void cameraCallback(const sensor_msgs::ImageConstPtr& msg)
