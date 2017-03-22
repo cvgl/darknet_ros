@@ -27,6 +27,7 @@ from sensor_msgs.msg import PointCloud2
 from darknet_msgs.msg import bbox_array_stamped
 from people_msgs.msg import People, Person
 from tf2_geometry_msgs import PointStamped, PoseStamped
+from geometry_msgs.msg import PoseArray
 import tf2_ros
 import numpy as np
 from math import isnan, isinf
@@ -56,6 +57,8 @@ class Detection2Depth():
         
         self.people_cloud_pub = rospy.Publisher("people_clouds", PointCloud2, queue_size=5)
         
+        self.people_poses_pub = rospy.Publisher("people_poses", PoseArray, queue_size=5)
+        
         # Use message filters to time synchronize the bboxes and the pointcloud
         self.bbox_sub = message_filters.Subscriber("yolo_bboxes", bbox_array_stamped, queue_size=10)
         self.pointcloud_sub = message_filters.Subscriber('point_cloud', PointCloud2, queue_size=10)
@@ -69,19 +72,24 @@ class Detection2Depth():
         # Clear the people array
         self.people.people = list()
         
+        # Clear the people pose array
+        people_poses = PoseArray()
+        
         for detection in yolo_boxes.bboxes:
             if detection.Class == 'person':                
                 bbox = [detection.xmin, detection.ymin, detection.xmax, detection.ymax]
                 try:
-                    cog = self.get_bbox_cloud(bbox, cloud)
-                    if cog == PoseStamped():
+                    person_pose = self.get_bbox_pose(bbox, cloud)
+                    if person_pose == PoseStamped():
                         continue
                 except:
                     continue
-                 
+                
+                people_poses.poses.append(person_pose.pose)
+                
                 person = Person()
-                person.position = cog.pose.position
-                person.position.z = 0.0
+                person.position = person_pose.pose.position
+                #person.position.z = 0.0
                 person.name = str(len(self.people.people))
                 person.reliability = 1.0
                  
@@ -89,8 +97,12 @@ class Detection2Depth():
         
         self.people.header.stamp = rospy.Time.now()
         self.people_pub.publish(self.people)
+        
+        people_poses.header.frame_id = self.base_link
+        people_poses.header.stamp = rospy.Time.now()
+        self.people_poses_pub.publish(people_poses)
                         
-    def get_bbox_cloud(self, bbox, cloud):
+    def get_bbox_pose(self, bbox, cloud):
         # Initialize the centroid coordinates point count
         x = y = z = n = 0
           
@@ -106,6 +118,7 @@ class Detection2Depth():
         # Place all the box points in an array to be used by the read_points function below
         bbox_points = [[x, y] for x in range(xmin, xmax) for y in range(ymin, ymax)]
         
+        # Clear the current list
         person_points = list()
         
         # Read in the x, y, z coordinates of all bbox points in the cloud
@@ -138,23 +151,28 @@ class Detection2Depth():
         z /= n
         
         # Transform the COG into the base frame
-        cog = PoseStamped()
-        cog.header.frame_id = self.depth_frame
-        cog.header.stamp = rospy.Time.now()
+        person_cog = PoseStamped()
+        person_cog.header.frame_id = self.depth_frame
+        person_cog.header.stamp = rospy.Time.now()
         
-        cog.pose.position.x = x
-        cog.pose.position.y = y
-        cog.pose.position.z = z
-        
-        cog.pose.orientation.w = 1.0
+        person_cog.pose.position.x = x
+        person_cog.pose.position.y = y
+        person_cog.pose.position.z = z
         
         # Project the COG onto the base frame
         try:
-            cog_in_base_frame = self.tfBuffer.transform(cog, self.base_link)
+            person_in_base_frame = self.tfBuffer.transform(person_cog, self.base_link)
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
             return PoseStamped()
         
-        return cog_in_base_frame
+        person_in_base_frame.pose.position.z = 0.0
+        
+        person_in_base_frame.pose.orientation.x = 0.707
+        person_in_base_frame.pose.orientation.y = 0.0
+        person_in_base_frame.pose.orientation.z = 0.707
+        person_in_base_frame.pose.orientation.w = 0.0
+        
+        return person_in_base_frame
 
             
     def shutdown(self):
