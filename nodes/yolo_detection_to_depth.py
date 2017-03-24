@@ -165,6 +165,7 @@ class Detection2Depth():
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
             return PoseStamped()
         
+        # Set the person on the ground
         person_in_base_frame.pose.position.z = 0.0
         
         person_in_base_frame.pose.orientation.x = 0.707
