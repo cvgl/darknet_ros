@@ -1,0 +1,9 @@
+<launch>
+
+<node pkg="darknet_ros" name="yolo_object_detector" type="yolo_object_detector" clear_params="true" output="screen">
+   <remap from="camera_topic_name" to="/camera/rgb/image_rect_color"/>
+   <param name="show_video" value="true" />
+   <param name="camera_frame" value="camera_rgb_optical_frame" />
+</node>
+
+</launch>
