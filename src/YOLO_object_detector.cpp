@@ -90,12 +90,16 @@ public:
       _found_object_pub = _nh.advertise<std_msgs::Int8>("yolo_found_object", 1);
       _bboxes_pub = _nh.advertise<darknet_msgs::bbox_array_stamped>("yolo_bboxes", 1);
 
-      cv::namedWindow(OPENCV_WINDOW, cv::WINDOW_NORMAL);
+      if (show_video) {
+    	  cv::namedWindow(OPENCV_WINDOW, cv::WINDOW_NORMAL);
+      }
    }
 
    ~yoloObjectDetector()
    {
-      cv::destroyWindow(OPENCV_WINDOW);
+	  if (show_video) {
+		  cv::destroyWindow(OPENCV_WINDOW);
+	  }
    }
 
 private:
