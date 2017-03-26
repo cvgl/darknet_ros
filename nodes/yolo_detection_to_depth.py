@@ -63,6 +63,7 @@ class Detection2Depth():
         self.bbox_sub = message_filters.Subscriber("yolo_bboxes", bbox_array_stamped, queue_size=10)
         self.pointcloud_sub = message_filters.Subscriber('point_cloud', PointCloud2, queue_size=10)
         
+        # Register the synchronized callback
         self.time_sync = message_filters.ApproximateTimeSynchronizer([self.bbox_sub, self.pointcloud_sub], 10, 2)
         self.time_sync.registerCallback(self.get_bbox_cog)
         
