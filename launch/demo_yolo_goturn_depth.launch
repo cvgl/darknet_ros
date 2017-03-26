@@ -1,0 +1,9 @@
+<launch>
+
+   <include file="$(find darknet_ros)/launch/no_video_yolo_object_detector.launch" />
+   
+   <include file="$(find darknet_ros)/launch/yolo_detection_to_depth.launch" />
+
+   <include file="$(find goturn_ros)/launch/no_video_test_tracker.launch" />
+
+</launch>
