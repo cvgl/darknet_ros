@@ -1,10 +1,10 @@
 <launch>
 
    <node pkg="darknet_ros" name="yolo_detection_to_depth" type="yolo_detection_to_depth.py" clear_params="true" output="screen">
-      <remap from="point_cloud" to="/camera/depth_registered/points"/>
-      <remap from="yolo_bboxes" to="yolo_bboxes"/>
+      <remap from="point_cloud"  to="/camera/depth_registered/points"/>
+      <remap from="yolo_bboxes"  to="yolo_bboxes"/>
       <param name="camera_frame" value="sibot/camera_rgb_optical_frame" />
-      <param name="base_frame" value="sibot/base_link" />
+      <param name="base_frame"   value="sibot/base_link" />
    </node>
 
 </launch>
