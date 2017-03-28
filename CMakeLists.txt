@@ -7,8 +7,6 @@ else()
     set(arch_64 FALSE) 
 endif() 
 
-catkin_package()
-
 find_package(CUDA REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
@@ -18,6 +16,8 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   image_transport
 )
+
+catkin_package()
 
 if(arch_64)
    set(
@@ -36,6 +36,7 @@ endif()
 add_definitions(-DGPU -DOPENCV)
 
 include_directories(
+  include
   $ENV{CUDA_HOME}/include
   src
   ${catkin_INCLUDE_DIRS}
@@ -123,6 +124,11 @@ cuda_add_executable(yolo_object_detector
   src/network_kernels.cu        src/avgpool_layer_kernels.cu
   src/yolo_kernels_ROSobj_detector.cu)
 
+add_dependencies(yolo_object_detector
+  darknet_msgs_generate_messages_cpp
+  ${catkin_EXPORTED_TARGETS}
+)
+
 
 target_link_libraries(ROS_interface
    m
@@ -135,7 +141,10 @@ target_link_libraries(ROS_interface
    ${catkin_LIBRARIES}
 )
 
-add_dependencies(yolo_object_detector darknet_msgs_generate_messages_cpp) 
+add_dependencies(ROS_interface
+  darknet_msgs_generate_messages_cpp 
+  ${catkin_EXPORTED_TARGETS}
+)
 
 target_link_libraries(yolo_object_detector
    m
@@ -146,5 +155,10 @@ target_link_libraries(yolo_object_detector
    cublas
    curand
    ${catkin_LIBRARIES}
+)
+
+add_dependencies(yolo_object_detector
+  darknet_msgs_generate_messages_cpp
+  ${catkin_EXPORTED_TARGETS}
 )
 
