@@ -27,6 +27,7 @@ from sensor_msgs.msg import PointCloud2
 from darknet_msgs.msg import bbox_array_stamped
 from people_msgs.msg import People, Person
 from jsk_recognition_msgs.msg import BoundingBoxArray, BoundingBox
+from spencer_tracking_msgs.msg import DetectedPersons, DetectedPerson
 from tf2_geometry_msgs import PointStamped, PoseStamped
 from geometry_msgs.msg import PoseArray
 import tf2_ros
@@ -72,6 +73,13 @@ class Detection2Depth():
         
         # Publish detections as a JSK BoundingBoxArray for viewing in RViz
         self.people_bounding_boxes_pub = rospy.Publisher("people_bounding_boxes", BoundingBoxArray, queue_size=5)
+        
+        # Keep a list of detected people using the Spencer DetectedPersons message type so we can display nice graphcis in RViz
+        self.detected_persons = DetectedPersons()
+        self.detected_persons.header.frame_id = self.base_link
+        
+        # Publish detections as a DetectedPersons array for viewing in RViz
+        self.detected_persons_pub = rospy.Publisher("detected_persons", DetectedPersons, queue_size=5)
 
         # Publish person pointclouds
         #self.people_cloud_pub = rospy.Publisher("people_clouds", PointCloud2, queue_size=5)
@@ -95,6 +103,12 @@ class Detection2Depth():
         
         # Clear the bounding box array
         self.people_bounding_boxes.boxes = list()
+        
+        # Clear the detected persons array
+        self.detected_persons.detections = list()
+        
+        # Assign arbitrary IDs
+        person_id = 0
     
         for detection in yolo_boxes.bboxes:
             if detection.Class == 'person':                
@@ -107,25 +121,43 @@ class Detection2Depth():
                 #    print person_pose, person_bounding_box
                 #    os._exit(1)
                 
+                # Pose
                 self.people_poses.poses.append(person_pose.pose)
+                
+                # Bounding box
                 self.people_bounding_boxes.boxes.append(person_bounding_box)
                 
+                # Person message type for social cost map
                 person = Person()
                 person.position = person_pose.pose.position
                 #person.position.z = 0.0
                 person.name = str(len(self.people.people))
                 person.reliability = 1.0
+                
+                # Spencer DetectedPerson
+                detected_person = DetectedPerson()
+                detected_person.modality = DetectedPerson.MODALITY_GENERIC_RGBD
+                detected_person.detection_id = person_id
+                person_id += 1
+                detected_person.pose.pose = person_pose.pose
+                self.detected_persons.detections.append(detected_person)
+
                  
                 self.people.people.append(person)
-                
-        self.people.header.stamp = rospy.Time.now()
+
+        now = rospy.Time.now()
+        
+        self.people.header.stamp = now
         self.people_pub.publish(self.people)
         
-        self.people_poses.header.stamp = rospy.Time.now()
+        self.people_poses.header.stamp = now
         self.people_poses_pub.publish(self.people_poses)
         
-        self.people_bounding_boxes.header.stamp = rospy.Time.now()
+        self.people_bounding_boxes.header.stamp = now
         self.people_bounding_boxes_pub.publish(self.people_bounding_boxes)
+        
+        self.detected_persons.header.stamp = now
+        self.detected_persons_pub.publish(self.detected_persons)
                         
     def get_bbox_pose(self, bbox, cloud):
         # Initialize variables
