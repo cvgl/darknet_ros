@@ -4,8 +4,8 @@
 
     Compute the average depth over each bounding boxe returned by YOLO
     
-    Created for the Pi Robot Project: http://www.pirobot.org
-    Copyright (c) 2017 Patrick Goebel.  All rights reserved.
+    Created for the Jackrabbot Project: http://cvgl.stanford.edu/projects/jackrabbot/
+    Copyright (c) 2017 Patrick Goebel & Stanford University.  All rights reserved.
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -26,11 +26,13 @@ from sensor_msgs import point_cloud2
 from sensor_msgs.msg import PointCloud2
 from darknet_msgs.msg import bbox_array_stamped
 from people_msgs.msg import People, Person
+from jsk_recognition_msgs.msg import BoundingBoxArray, BoundingBox
 from tf2_geometry_msgs import PointStamped, PoseStamped
 from geometry_msgs.msg import PoseArray
 import tf2_ros
 import numpy as np
 from math import isnan, isinf
+import os
 
 class Detection2Depth():
     def __init__(self):
@@ -43,21 +45,36 @@ class Detection2Depth():
         
         self.display_depth_image = False
         
-        self.base_link = 'sibot/base_link'
+        self.base_link = rospy.get_param('~base_link', 'sibot/base_link')
         
-        self.depth_frame = 'sibot/camera_rgb_optical_frame'
+        self.depth_frame = rospy.get_param('~depth_frame', 'sibot/camera_rgb_optical_frame')
 
         self.tfBuffer = tf2_ros.Buffer()
         tf_listener = tf2_ros.TransformListener(self.tfBuffer)
         
+        # Keep a list of peope as a People message
         self.people = People()
         self.people.header.frame_id = self.base_link
         
+        # Publish results as people_msgs/People messages
         self.people_pub = rospy.Publisher("people", People, queue_size=5)
         
-        self.people_cloud_pub = rospy.Publisher("people_clouds", PointCloud2, queue_size=5)
-        
+        # Keep a list of peope poses as PoseArray message
+        self.people_poses = PoseArray()
+        self.people_poses.header.frame_id = self.base_link
+
+        # Publish detections as a pose array
         self.people_poses_pub = rospy.Publisher("people_poses", PoseArray, queue_size=5)
+        
+        # Keep a list of people 3D bounding boxes as a BoundingBoxArray message
+        self.people_bounding_boxes = BoundingBoxArray()
+        self.people_bounding_boxes.header.frame_id = self.depth_frame
+        
+        # Publish detections as a JSK BoundingBoxArray for viewing in RViz
+        self.people_bounding_boxes_pub = rospy.Publisher("people_bounding_boxes", BoundingBoxArray, queue_size=5)
+
+        # Publish person pointclouds
+        #self.people_cloud_pub = rospy.Publisher("people_clouds", PointCloud2, queue_size=5)
         
         # Use message filters to time synchronize the bboxes and the pointcloud
         self.bbox_sub = message_filters.Subscriber("yolo_bboxes", bbox_array_stamped, queue_size=10)
@@ -74,19 +91,24 @@ class Detection2Depth():
         self.people.people = list()
         
         # Clear the people pose array
-        people_poses = PoseArray()
+        self.people_poses.poses = list()
         
+        # Clear the bounding box array
+        self.people_bounding_boxes.boxes = list()
+    
         for detection in yolo_boxes.bboxes:
             if detection.Class == 'person':                
                 bbox = [detection.xmin, detection.ymin, detection.xmax, detection.ymax]
-                try:
-                    person_pose = self.get_bbox_pose(bbox, cloud)
-                    if person_pose == PoseStamped():
-                        continue
-                except:
+                #try:
+                person_pose, person_bounding_box = self.get_bbox_pose(bbox, cloud)
+                if person_pose is None:
                     continue
+                #except:
+                #    print person_pose, person_bounding_box
+                #    os._exit(1)
                 
-                people_poses.poses.append(person_pose.pose)
+                self.people_poses.poses.append(person_pose.pose)
+                self.people_bounding_boxes.boxes.append(person_bounding_box)
                 
                 person = Person()
                 person.position = person_pose.pose.position
@@ -95,22 +117,29 @@ class Detection2Depth():
                 person.reliability = 1.0
                  
                 self.people.people.append(person)
-        
+                
         self.people.header.stamp = rospy.Time.now()
         self.people_pub.publish(self.people)
         
-        people_poses.header.frame_id = self.base_link
-        people_poses.header.stamp = rospy.Time.now()
-        self.people_poses_pub.publish(people_poses)
+        self.people_poses.header.stamp = rospy.Time.now()
+        self.people_poses_pub.publish(self.people_poses)
+        
+        self.people_bounding_boxes.header.stamp = rospy.Time.now()
+        self.people_bounding_boxes_pub.publish(self.people_bounding_boxes)
                         
     def get_bbox_pose(self, bbox, cloud):
-        # Initialize the centroid coordinates point count
-        x = y = z = n = 0
+        # Initialize variables
+        n = 0
+        cog = [0]*3
+        min_dim = [None]*3
+        max_dim = [None]*3
+        cloud_dim = [0]*3
           
-        # Shrink the bbox by 10% to minimize background points
+        # Get the width and height of the bbox
         width = bbox[2] - bbox[0]
         height = bbox[3] - bbox[1]
-           
+
+        # Shrink the bbox by 10% to minimize background points
         xmin = bbox[0] + int(0.1 * width)
         xmax = bbox[2] - int(0.1 * width)
         ymin = bbox[1] + int(0.1 * height)
@@ -125,46 +154,48 @@ class Detection2Depth():
         # Read in the x, y, z coordinates of all bbox points in the cloud
         for point in point_cloud2.read_points(cloud, skip_nans=True, uvs=bbox_points):
             try:
-                pt_x = point[0]
-                pt_y = point[1]
-                pt_z = point[2]
+                for i in range(3):
+                    if min_dim[i] is None or point[i] <  min_dim[i]:
+                        min_dim[i] = point[i]
+
+                    if max_dim[i] is None or point[i] >  max_dim[i]:
+                        max_dim[i] = point[i]
                   
-                x += pt_x
-                y += pt_y
-                z += pt_z
+                    cog[i] += point[i]
+
                 n += 1
                 
-                person_points.append(point)
+                #person_points.append(point)
             except:
                 pass
-            
-        person_cloud = point_cloud2.create_cloud(cloud.header, cloud.fields, person_points)
         
-        self.people_cloud_pub.publish(person_cloud)
+        # Publish the pointcloud for this person
+        #person_cloud = point_cloud2.create_cloud(cloud.header, cloud.fields, person_points)
+        #self.people_cloud_pub.publish(person_cloud)
           
-        # If we have points, compute the centroid coordinates
+        # If we don't have any points, just return empty handed
         if n == 0:
-            #rospy.logwarn("NO POINTS!")
-            return PoseStamped()
+            return (None, None)
+                
+        # Compute the COG and dimensions of the bounding box
+        for i in range(3):
+            cog[i] /= n
+            cloud_dim[i] = max_dim[i] - min_dim[i]
         
-        x /= n 
-        y /= n 
-        z /= n
-        
-        # Transform the COG into the base frame
+        # Fill in the person pose message
         person_cog = PoseStamped()
         person_cog.header.frame_id = self.depth_frame
         person_cog.header.stamp = rospy.Time.now()
         
-        person_cog.pose.position.x = x
-        person_cog.pose.position.y = y
-        person_cog.pose.position.z = z
+        person_cog.pose.position.x = cog[0]
+        person_cog.pose.position.y = cog[1]
+        person_cog.pose.position.z = cog[2]
         
         # Project the COG onto the base frame
         try:
             person_in_base_frame = self.tfBuffer.transform(person_cog, self.base_link)
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-            return PoseStamped()
+            return (None, None)
         
         # Set the person on the ground
         person_in_base_frame.pose.position.z = 0.0
@@ -174,7 +205,16 @@ class Detection2Depth():
         person_in_base_frame.pose.orientation.z = 0.707
         person_in_base_frame.pose.orientation.w = 0.0
         
-        return person_in_base_frame
+        # Fill in the BoundBox message
+        person_bounding_box = BoundingBox()
+        person_bounding_box.header.frame_id = self.depth_frame
+        person_bounding_box.header.stamp = rospy.Time.now()
+        person_bounding_box.pose = person_in_base_frame.pose
+        person_bounding_box.dimensions.x = cloud_dim[0]
+        person_bounding_box.dimensions.y = cloud_dim[1]
+        person_bounding_box.dimensions.z = cloud_dim[2]
+        
+        return (person_in_base_frame, person_bounding_box)
 
             
     def shutdown(self):
