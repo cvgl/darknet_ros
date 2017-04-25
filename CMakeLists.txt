@@ -27,6 +27,7 @@ if(arch_64)
       -gencode=arch=compute_50,code=sm_50 
       -gencode=arch=compute_52,code=sm_52 
       -gencode=arch=compute_52,code=compute_52 
+# Uncomment below for GTX-1070
 #      -gencode=arch=compute_60,code=sm_60 
 #      -gencode=arch=compute_61,code=sm_61 
 #      -gencode=arch=compute_62,code=sm_62
