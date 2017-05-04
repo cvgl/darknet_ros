@@ -1,8 +1,9 @@
 <launch>
 
-  <arg name="sim"  default="false" />
+   <arg name="sim"  default="false" />
+   <arg name="threshold" default="0.3" />
 
-   <node pkg="darknet_ros" name="yolo_object_detector" type="yolo_object_detector" clear_params="true" output="screen">
+   <node pkg="darknet_ros" name="yolo_object_detector" type="yolo_object_detector" args="-thresh $(arg threshold)" clear_params="true" output="screen">
       <remap from="camera_topic_name" to="/camera/rgb/image_raw"        if="$(arg sim)" />
       <remap from="camera_topic_name" to="/camera/rgb/image_rect_color" unless="$(arg sim)" />
       <param name="show_video" value="false" />
