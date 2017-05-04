@@ -24,10 +24,10 @@ extern "C" ROS_box *demo_yolo();
 extern "C" void load_network(const char *cfgfile, const char *weightfile, float thresh);
 
 // define demo_yolo inputs
-const std::string cfg_file = ros::package::getPath("darknet_ros") + "/cfg/tiny-yolo.cfg";
-const std::string weights_file = ros::package::getPath("darknet_ros") + "/weights/tiny-yolov1.weights";
-//const std::string cfg_file = ros::package::getPath("darknet_ros") + "/cfg/yolo-small.cfg";
-//const std::string weights_file = ros::package::getPath("darknet_ros") + "/weights/yolo-small.weights";
+//const std::string cfg_file = ros::package::getPath("darknet_ros") + "/cfg/tiny-yolo.cfg";
+//const std::string weights_file = ros::package::getPath("darknet_ros") + "/weights/tiny-yolov1.weights";
+const std::string cfg_file = ros::package::getPath("darknet_ros") + "/cfg/yolo-small.cfg";
+const std::string weights_file = ros::package::getPath("darknet_ros") + "/weights/yolo-small.weights";
 
 const char *cfg = cfg_file.c_str();
 const char *weights = weights_file.c_str();
