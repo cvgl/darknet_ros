@@ -130,8 +130,8 @@ private:
          cv::Point topLeftCorner = cv::Point(xmin, ymin);
          cv::Point botRightCorner = cv::Point(xmax, ymax);
 	 cv::rectangle(input_frame, topLeftCorner, botRightCorner, bbox_color, 2);
-         cv::putText(input_frame, class_label, cv::Point(xmin, ymax+15), cv::FONT_HERSHEY_PLAIN,
-		 1.0, bbox_color, 2.0);
+         cv::putText(input_frame, class_label, cv::Point(xmin, ymin-15), cv::FONT_HERSHEY_PLAIN,
+		 2.0, bbox_color, 2.0);
       }
    }
 
