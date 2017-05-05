@@ -142,7 +142,6 @@ class Detection2Depth():
                 detected_person.pose.pose = person_pose.pose
                 self.detected_persons.detections.append(detected_person)
 
-                 
                 self.people.people.append(person)
 
         now = rospy.Time.now()
@@ -200,7 +199,7 @@ class Detection2Depth():
                 #person_points.append(point)
             except:
                 pass
-        
+
         # Publish the pointcloud for this person
         #person_cloud = point_cloud2.create_cloud(cloud.header, cloud.fields, person_points)
         #self.people_cloud_pub.publish(person_cloud)
