@@ -1,16 +1,11 @@
 <launch>
 
-   <arg name="sim"             default="false" />
    <arg name="include_goturn"  default="true" />
 
-   <include file="$(find darknet_ros)/launch/no_video_yolo_object_detector.launch">
-      <arg name="sim"  value="$(arg sim)" />
-   </include>
-   
+   <include file="$(find darknet_ros)/launch/no_video_yolo_object_detector.launch" />
+
    <include file="$(find darknet_ros)/launch/yolo_detection_to_depth.launch" />
 
-   <include file="$(find goturn_ros)/launch/no_video_test_tracker.launch" if="$(arg include_goturn)">
-      <arg name="sim"  value="$(arg sim)" />
-   </include>
+   <include file="$(find goturn_ros)/launch/no_video_test_tracker.launch" if="$(arg include_goturn)" />
 
 </launch>
